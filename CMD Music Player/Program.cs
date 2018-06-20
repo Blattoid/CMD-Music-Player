@@ -1,21 +1,35 @@
 ﻿using System;
+using System.IO;
 
 namespace CMD_Music_Player
 {
     class Program
     {
-        public static WMPLib.WindowsMediaPlayer wplayer = new WMPLib.WindowsMediaPlayer(); //the namesake of this program
+        public WMPLib.WindowsMediaPlayer wplayer = new WMPLib.WindowsMediaPlayer(); //the namesake of this program
+        public static void error(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
         static void Main(string[] args)
         {
-            string filepath = @"C:\Users\USERNAME\Music\eyyy it works.mp3";
-            try
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+    }
+    class functions
+    {
+        void play(WMPLib.WindowsMediaPlayer player, string @filepath)
+        {
+            if (File.Exists(filepath))
             {
-                Console.WriteLine("Starting playback of " + filepath);
-                wplayer.URL = filepath;
-                wplayer.controls.play();
-                Console.ReadLine();
+                try
+                {
+                    player.URL = filepath;
+                    player.controls.play();
+                }
+                catch (Exception err) { Program.error("Error playing file: " + err.Message); }
             }
-            catch (Exception err) { Console.WriteLine("Error playing file: " + err.Message); }
         }
     }
 }
