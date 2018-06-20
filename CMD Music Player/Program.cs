@@ -21,7 +21,12 @@ namespace CMD_Music_Player
                 string command = Console.ReadLine();
                 string commandupper = command.ToUpper();
 
-                if (commandupper.StartsWith("HELP")){ Console.WriteLine("List of commands:\n\tplay"); }
+                if (commandupper.StartsWith("HELP")) { Console.WriteLine("List of commands:\n\tls\n\tplay\n\tstop\n\tpause\n\texit"); }
+                else if (commandupper.StartsWith("LS"))
+                {
+                    foreach (string file in Directory.GetFiles(Directory.GetCurrentDirectory()))
+                        Console.WriteLine("\t" + Path.GetFileName(file));
+                }
                 else if (commandupper == "PLAY") { Console.WriteLine("Usage: play <filename>"); }
                 else if (commandupper.StartsWith("PLAY "))
                 {
@@ -33,6 +38,9 @@ namespace CMD_Music_Player
                     }
                     else { error("Error playing file: File doesn't exist."); }
                 }
+                else if (commandupper.StartsWith("STOP")) { functions.stop(player); }
+                else if (commandupper.StartsWith("PAUSE")) { functions.pause(player); }
+                else if (commandupper.StartsWith("EXIT")) { Environment.Exit(0); }
                 else { error("Command unknown. Type 'help' for a list of commands."); }
             }
         }
@@ -47,6 +55,9 @@ namespace CMD_Music_Player
                 }
                 catch (Exception err) { error("Error playing file: " + err.Message); }
             }
+            public static void stop(WMPLib.WindowsMediaPlayer player){ player.controls.stop(); }
+            public static void pause(WMPLib.WindowsMediaPlayer player){ player.controls.pause(); }
+            public string readPosition(WMPLib.WindowsMediaPlayer player){ return player.controls.currentPositionString; }
         }
     }
 }
