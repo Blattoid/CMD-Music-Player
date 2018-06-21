@@ -27,7 +27,7 @@ namespace CMD_Music_Player
                     foreach (string file in Directory.GetFiles(Directory.GetCurrentDirectory()))
                         Console.WriteLine("\t" + Path.GetFileName(file));
                 }
-                else if (commandupper == "PLAY") { Console.WriteLine("Usage: play <filename>"); }
+                else if (commandupper == "PLAY") { functions.resume(player); }
                 else if (commandupper.StartsWith("PLAY "))
                 {
                     string path = command.Substring(5);
@@ -55,6 +55,7 @@ namespace CMD_Music_Player
                 }
                 catch (Exception err) { error("Error playing file: " + err.Message); }
             }
+            public static void resume(WMPLib.WindowsMediaPlayer player) { player.controls.play(); }
             public static void stop(WMPLib.WindowsMediaPlayer player){ player.controls.stop(); }
             public static void pause(WMPLib.WindowsMediaPlayer player){ player.controls.pause(); }
             public string readPosition(WMPLib.WindowsMediaPlayer player){ return player.controls.currentPositionString; }
