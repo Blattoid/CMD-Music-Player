@@ -4,9 +4,36 @@ using System.IO;
 
 namespace CMD_Music_Player
 {
-    class Program
+    static class Program
     {
         public static WMPLib.WindowsMediaPlayer player = new WMPLib.WindowsMediaPlayer(); //the heart of this program
+
+        static decimal Map(this decimal value, decimal fromSource, decimal toSource, decimal fromTarget, decimal toTarget)
+        {
+            return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
+        }
+        public static void generateProgressBar()
+        {
+            try
+            {
+                int pos = Convert.ToInt32(player.controls.currentPosition);
+                int totallength = Convert.ToInt32(player.currentMedia.duration);
+                if (pos == 0) { Console.WriteLine("At beginning of media."); } //at beginning of track
+                else
+                {
+                    //draw the progress bar
+                    Console.Write("[");
+                    int progress = Convert.ToInt32(Map(pos, 0, totallength, 0, Console.WindowWidth- (player.controls.currentPositionString.Length + player.currentMedia.durationString.Length))); //calculate progress
+                    for (int i = 0; i <= progress-2; i++) { Console.Write("="); }
+                    Console.Write(">"); //arrow
+                    for (int i = 0; i <= Console.WindowWidth - progress - (player.controls.currentPositionString.Length+ player.currentMedia.durationString.Length)-6; i++) { Console.Write("."); } //2 for the [], 1 for the >, and however much else for the current/total time
+                    Console.Write("] ");
+                    //write the current and total time.
+                    Console.WriteLine(player.controls.currentPositionString + "/" + player.currentMedia.durationString);
+                }
+            }
+            catch (Exception) { error("No media playing."); }
+        }
         public static void error(string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -60,14 +87,7 @@ namespace CMD_Music_Player
                 else if (commandupper.StartsWith("PAUSE")) { player.controls.pause(); }
                 else if (commandupper.StartsWith("POS"))
                 {
-                    try
-                    {
-                        string pos = player.controls.currentPositionString;
-                        string totallength = player.currentMedia.durationString;
-                        if (pos == "") { Console.WriteLine("At beginning of media."); }//at beginning of track
-                        else { Console.WriteLine(pos + "/" + totallength); }
-                    }
-                    catch (Exception) { error("No media playing."); }
+                    generateProgressBar();
                 }
 
                 else if (commandupper.Replace(" ", "") == "GOTO") { error("Syntax: mm:ss"); }
@@ -92,7 +112,10 @@ namespace CMD_Music_Player
                     if (timeargs.Count == 2){ seconds = (timeargs[0] * 60) + timeargs[1]; } //mm:ss
                     if (timeargs.Count == 3){ seconds = (timeargs[0] * 60 * 60) + (timeargs[1] * 60) + timeargs[2]; } //hh:mm:ss
                     player.controls.currentPosition = seconds;
+                    generateProgressBar();
                 }
+
+
                 else if (commandupper.StartsWith("EXIT")) { Environment.Exit(0); }
                 else if (command == "") { } //blank commands are ignored.
                 else { error("Command unknown. Type 'help' for a list of commands."); }
