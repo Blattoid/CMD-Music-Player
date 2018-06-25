@@ -8,12 +8,14 @@ namespace CMD_Music_Player
     {
         public static WMPLib.WindowsMediaPlayer player = new WMPLib.WindowsMediaPlayer(); //the heart of this program
 
+        static bool bypassfilecheck = false;
         static decimal Map(this decimal value, decimal fromSource, decimal toSource, decimal fromTarget, decimal toTarget)
         {
             return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
         }
         public static void generateProgressBar()
         {
+            //CURRENTLY DOESNT WORK
             try
             {
                 int pos = Convert.ToInt32(player.controls.currentPosition);
@@ -70,7 +72,9 @@ namespace CMD_Music_Player
                 else if (commandupper.StartsWith("PLAY "))
                 {
                     string path = command.Substring(5);
-                    if (File.Exists(path))
+                    //remove quotation marks, as they interfere with the media player.
+                    path = path.Replace(Convert.ToChar("\""), Convert.ToChar(" "));
+                    if (File.Exists(path) || bypassfilecheck) //check if either the file exists, or if said check is disabled.
                     {
                         Console.WriteLine("Playing " + path + "...");
                         try
@@ -87,9 +91,9 @@ namespace CMD_Music_Player
                 else if (commandupper.StartsWith("PAUSE")) { player.controls.pause(); }
                 else if (commandupper.StartsWith("POS"))
                 {
-                    generateProgressBar();
+                    Console.WriteLine(player.controls.currentPositionString + "/" + player.currentMedia.durationString);
+                    //generateProgressBar();
                 }
-
                 else if (commandupper.Replace(" ", "") == "GOTO") { error("Syntax: mm:ss"); }
                 else if (commandupper.StartsWith("GOTO"))
                 {
@@ -108,14 +112,19 @@ namespace CMD_Music_Player
                     }
                     catch (Exception err) { error("Invalid time code: " + err.Message); continue; }
                     int seconds = 0;
-                    if (timeargs.Count == 1){ seconds = timeargs[0]; } //ss
-                    if (timeargs.Count == 2){ seconds = (timeargs[0] * 60) + timeargs[1]; } //mm:ss
-                    if (timeargs.Count == 3){ seconds = (timeargs[0] * 60 * 60) + (timeargs[1] * 60) + timeargs[2]; } //hh:mm:ss
+                    if (timeargs.Count == 1) { seconds = timeargs[0]; } //ss
+                    if (timeargs.Count == 2) { seconds = (timeargs[0] * 60) + timeargs[1]; } //mm:ss
+                    if (timeargs.Count == 3) { seconds = (timeargs[0] * 60 * 60) + (timeargs[1] * 60) + timeargs[2]; } //hh:mm:ss
                     player.controls.currentPosition = seconds;
-                    generateProgressBar();
+                    //generateProgressBar();
                 }
 
-
+                else if (commandupper.StartsWith("TOGGLE_FILECHECK"))
+                {
+                    //just for fun: disables checking of existence of a file. this could allow for lots of possible input, such as http addresses pointing to media
+                    bypassfilecheck = !bypassfilecheck;
+                    Console.WriteLine(!bypassfilecheck);
+                }
                 else if (commandupper.StartsWith("EXIT")) { Environment.Exit(0); }
                 else if (command == "") { } //blank commands are ignored.
                 else { error("Command unknown. Type 'help' for a list of commands."); }
