@@ -54,13 +54,14 @@ namespace CMD_Music_Player
                 if (commandupper.StartsWith("HELP"))
                 {
                     Console.WriteLine("List of commands:\n" +
-"\tls\n" +
-"\tplay\n" +
-"\tstop\n" +
-"\tpause\n" +
-"\tpos\n" +
-"\tgoto\n" +
-"\texit");
+                                            "\tplay\n" +
+                                            "\tstop\n" +
+                                            "\tpause\n\n" +
+                                            "\tpos\n" +
+                                            "\tgoto\n\n" +
+                                            "\tls\n" +
+                                            "\texit"
+                    );  // don't be sad ;-;
                 }
                 else if (commandupper.StartsWith("LS"))
                 {
@@ -73,7 +74,7 @@ namespace CMD_Music_Player
                 {
                     string path = command.Substring(5);
                     //remove quotation marks, as they interfere with the media player.
-                    path = path.Replace(Convert.ToChar("\""), Convert.ToChar(" "));
+                    path = path.Replace(Convert.ToChar("\""), Convert.ToChar(""));
                     if (File.Exists(path) || bypassfilecheck) //check if either the file exists, or if said check is disabled.
                     {
                         Console.WriteLine("Playing " + path + "...");
@@ -91,7 +92,8 @@ namespace CMD_Music_Player
                 else if (commandupper.StartsWith("PAUSE")) { player.controls.pause(); }
                 else if (commandupper.StartsWith("POS"))
                 {
-                    Console.WriteLine(player.controls.currentPositionString + "/" + player.currentMedia.durationString);
+                    try { Console.WriteLine(player.controls.currentPositionString + "/" + player.currentMedia.durationString); }
+                    catch (Exception err) { error("No media is loaded."); }
                     //generateProgressBar();
                 }
                 else if (commandupper.Replace(" ", "") == "GOTO") { error("Syntax: mm:ss"); }
