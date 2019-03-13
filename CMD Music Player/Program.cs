@@ -106,28 +106,45 @@ namespace CMD_Music_Player
                     else { error("No media is loaded."); }
 
                 }
-                else if (commandupper.Replace(" ", "") == "GOTO") { error("Syntax: mm:ss"); }
                 else if (commandupper == "GOTO")
                 {
-                    if (!IsMediaSelected()) { error("No media is selected!"); continue; }
+                    string syntax = "Syntax: [hh:][mm:]ss";
+                    if (!IsMediaSelected())
+                    {
+                        error("No media is selected!");
+                        continue;
+                    }
+                    if (command.Length < 2)
+                    {
+                        error(syntax);
+                        continue;
+                    }
 
                     string[] strtimeargs = command[1].Split(Char.Parse(":"));
-                    List<int> timeargs = new List<int>();
+                    if (strtimeargs.Length < 1 || strtimeargs.Length > 3) error(syntax);
+                    strtimeargs.Reverse(); //reverse it so it is now in the ss:mm:hh format. This makes it easier to process.
+                    List<double> timeargs = new List<double>();
 
                     try
                     {
                         foreach (string item in strtimeargs)
                         {
-                            if (item == "") { error("Syntax: [hh:][mm:]ss"); continue; }
-                            timeargs.Add(Convert.ToInt32(item)); //int32 works just fine since it represents seconds, and 2147483647 seconds is 68.04 years.
+                            if (item == "") { error(syntax); continue; }
+                            timeargs.Add(Convert.ToDouble(item)); //double is bulletproof since it is a 64 bit number, so it will overflow after 5.38 millenia.
                         }
                     }
                     catch (Exception err) { error("Invalid time code: " + err.Message); continue; }
-                    int seconds = 0;
-                    if (timeargs.Count == 1) { seconds = timeargs[0]; } //ss
-                    if (timeargs.Count == 2) { seconds = (timeargs[0] * 60) + timeargs[1]; } //mm:ss
-                    if (timeargs.Count == 3) { seconds = (timeargs[0] * 60 * 60) + (timeargs[1] * 60) + timeargs[2]; } //hh:mm:ss
-                    player.controls.currentPosition = seconds;
+                    //parse into seconds
+                    float seconds = 0;
+                    int multiplier = 1; //multiply the item by this
+                    foreach (int unit in timeargs) {
+                        seconds += unit * multiplier;
+                        multiplier *= 60; //multiple the multipler by 60 (sequence is 1,60,3600)
+                    }
+                    //is this longer than the length of the song?
+                    if (seconds > player.currentMedia.duration) error("Timecode is below 0 seconds.");
+                   //or is it smaller than 0 ? 
+                   player.controls.currentPosition = seconds;
 
                     Console.WriteLine(CreateBarFromMediaInfo());
                 }
@@ -142,12 +159,13 @@ namespace CMD_Music_Player
                 else { error("Command unknown. Type 'help' for a list of commands."); }
             }
         }
+
+
         //https://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp
         [DllImport("shell32.dll", SetLastError = true)]
         static extern IntPtr CommandLineToArgvW(
             [MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, out int pNumArgs
         );
-
         public static string[] CommandLineToArgs(string commandLine)
         {
             int argc;
