@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace CMD_Music_Player
@@ -9,7 +10,9 @@ namespace CMD_Music_Player
     static class Program
     {
         public static WMPLib.WindowsMediaPlayer player = new WMPLib.WindowsMediaPlayer(); //the heart of this program
-        
+        //https://docs.microsoft.com/en-us/dotnet/api/system.globalization.textinfo.totitlecase?redirectedfrom=MSDN&view=netframework-4.7.2#System_Globalization_TextInfo_ToTitleCase_System_String_
+        static TextInfo TextCaseConverter = new CultureInfo("en-GB", false).TextInfo;
+
         static bool bypassfilecheck = false;
         public static void error(string message)
         {
@@ -89,23 +92,38 @@ namespace CMD_Music_Player
                 }
                 else if (commandupper == "LS")
                 {
+                    Console.Write("Filename");
+                    Console.Write(String.Concat(Enumerable.Repeat(" ", 50-8)));
+                    Console.WriteLine("Artist name");
                     foreach (string file in discoveredfiles)
-                        Console.WriteLine("\t" + Path.GetFileName(file));
+                    {
+                        var media = player.newMedia(file);
+                        string filename = TextCaseConverter.ToTitleCase(Path.GetFileName(file));
+
+                        string line = "";
+                        for (int i = 0; i <= 50; i++)
+                        {
+                            //print the first 20 characters of the song name and pad any extra space
+                            try { line += filename[i]; }
+                            catch { line += " "; }
+                        }
+                        line += "   "; //padding between title and authour
+                        line += media.getItemInfo("Author");
+                        Console.WriteLine(line);
+                    }
                 }
                 else if (commandupper == "PLAY")
                 {
                     if (command.Length == 1) { player.controls.play(); }
                     else
                     {
-                        string path = command[1];
-                        //remove quotation marks, as they interfere with the media player.
-                        path = path.Replace(Convert.ToChar("\""), Convert.ToChar(" "));
-                        if (File.Exists(path) || bypassfilecheck) //check if either the file exists, or if said check is disabled.
+                        string medianame = command[1]; //get media name parameter
+                        if (DataSearch.IsElementInList(medianame, discoveredfiles) || bypassfilecheck) //check if either the file exists, or if said check is disabled.
                         {
-                            Console.WriteLine("Playing " + path + "...");
+                            Console.WriteLine("Playing " + medianame + "...");
                             try
                             {
-                                player.URL = path;
+                                player.URL = DataSearch.FindMediaPath(medianame, discoveredfiles);
                                 player.controls.play();
                             }
                             catch (Exception err) { error("Error playing file: " + err.Message); }
@@ -117,27 +135,31 @@ namespace CMD_Music_Player
                 else if (commandupper == "PAUSE") { player.controls.pause(); }
                 else if (commandupper == "POS")
                 {
-                    if (IsMediaSelected())
-                    {
-                        for (int i = 0; i < player.currentMedia.attributeCount; i++)
-                        {
-                            var name = player.currentMedia.getAttributeName(i);
-                            var value = player.currentMedia.getItemInfo(name);
-                            if (value.Length == 0) continue;
-                            Console.WriteLine(name + ": " + value);
-                        }
+                    if (IsMediaSelected()) Console.WriteLine(CreateBarFromMediaInfo());
+                    else error("No media is loaded.");
 
-                        Console.WriteLine(CreateBarFromMediaInfo());
+
+                }
+                else if (commandupper == "INFO")
+                {
+                    if (player.currentMedia == null) {
+                        error("No media is loaded.");
+                        continue;
                     }
-                    else { error("No media is loaded."); }
-
+                    for (int i = 0; i < player.currentMedia.attributeCount; i++)
+                    {
+                        var name = player.currentMedia.getAttributeName(i);
+                        var value = player.currentMedia.getItemInfo(name);
+                        if (value.Length == 0) continue;
+                        Console.WriteLine(name + ": " + value);
+                    }
                 }
                 else if (commandupper == "GOTO")
                 {
                     string syntax = "Syntax: [hh:][mm:]ss";
                     if (!IsMediaSelected())
                     {
-                        error("No media is selected!");
+                        error("No media is loaded.");
                         continue;
                     }
                     if (command.Length < 2)
@@ -163,7 +185,8 @@ namespace CMD_Music_Player
                     //parse into seconds
                     float seconds = 0;
                     int multiplier = 1; //multiply the item by this
-                    foreach (int unit in timeargs) {
+                    foreach (int unit in timeargs)
+                    {
                         seconds += unit * multiplier;
                         multiplier *= 60; //multiple the multipler by 60 (sequence is 1,60,3600)
                     }
@@ -227,13 +250,13 @@ namespace CMD_Music_Player
 
             //add all the files in the folder that are music files.
             foreach (string filepath in Directory.GetFiles(searchfolder))
+            {
+                if (IsSupportedFiletype(filepath))
                 {
-                    if (IsSupportedFiletype(filepath))
-                    {
-                        if (verbose) Console.WriteLine("Discovered " + filepath);
-                        found_files.Add(filepath);
-                    }
+                    if (verbose) Console.WriteLine("Discovered " + filepath);
+                    found_files.Add(filepath);
                 }
+            }
 
             //recursively check all subdirectories if flag was set
             if (recursive)
@@ -245,7 +268,7 @@ namespace CMD_Music_Player
                     foreach (string file in sub_files)
                     {
                         if (IsSupportedFiletype(file)) found_files.Add(file);
-                        
+
                     }
                 }
             }
@@ -256,12 +279,31 @@ namespace CMD_Music_Player
         }
         static bool IsSupportedFiletype(string filename)
         {
+            //Simple function to check if a filename ends with an acceptable extension
             string[] supportedformats = new string[] { ".3g2", ".3gp", ".3gp2", ".3gpp", ".aac", ".adt", ".adts", ".aif", ".aifc", ".aiff", ".asf", ".asx", ".au", ".avi", ".cda", ".dvr-ms", ".flac", ".ivf", ".m1v", ".m2ts", ".m3u", ".m4a", ".m4v", ".mid", ".midi", ".mov", ".mp2", ".mp3", ".mp4", ".mp4v", ".mpa", ".mpe", ".mpeg", ".mpg", ".rmi", ".snd", ".wav", ".wax", ".wm", ".wma", ".wmd", ".wms", ".wmv", ".wmx", ".wmz", ".wpl", ".wvx" };
             foreach (string type in supportedformats)
             {
                 if (filename.EndsWith(type)) return true;
             }
             return false;
+        }
+        public static bool IsElementInList(string SearchElement, List<string> ListToTest)
+        {
+            //Simple function to check if a test string appears inside a list of strings
+            foreach (string element in ListToTest)
+            {
+                if (SearchElement == element) return true;
+            }
+            return false;
+        }
+        public static string FindMediaPath(string SearchElement, List<string> ListToTest)
+        {
+            //Very similar to IsElementInList, but returns the filepath from the list.
+            foreach (string element in ListToTest)
+            {
+                if (SearchElement == element) return element;
+            }
+            return "";
         }
     }
     static class ProgressBar
