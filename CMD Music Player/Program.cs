@@ -51,7 +51,7 @@ namespace CMD_Music_Player
         {
             Console.ForegroundColor = ConsoleColor.White;
 
-            (List<string> discoveredfolders, List<string> discoveredfiles) = DataSearch.PerformScan(); //perform inital scan for media
+            (List<string> registeredfolders, List<string> discoveredfiles) = DataSearch.PerformScan(); //perform inital scan for media
 
             for (; ; )
             {
@@ -224,7 +224,11 @@ namespace CMD_Music_Player
                         else if (commandupper == "LIST")
                         {
                             Console.WriteLine("List of registered folders:");
-
+                            foreach (string path in registeredfolders)
+                            {
+                                if (path == AppDomain.CurrentDomain.BaseDirectory) Console.WriteLine("* " + path);
+                                else Console.WriteLine(path);
+                            }
                         }
                         else if (commandupper == "ADD")
                         {
@@ -238,7 +242,7 @@ namespace CMD_Music_Player
                         else { error("Command unknown. Type 'help' for a list of commands."); }
                     }
                     Console.WriteLine("Rescanning for media...");
-                    (discoveredfolders, discoveredfiles) = DataSearch.PerformScan(); //perform another scan for media
+                    (registeredfolders, discoveredfiles) = DataSearch.PerformScan(); //perform another scan for media
         }
                 else if (commandupper == "TOGGLE_FILECHECK")
                 {
