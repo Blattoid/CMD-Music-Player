@@ -51,7 +51,7 @@ namespace CMD_Music_Player
         {
             Console.ForegroundColor = ConsoleColor.White;
 
-            List<string> discoveredfiles = DataSearch.PerformScan(); //perform inital scan for media
+            (List<string> discoveredfolders, List<string> discoveredfiles) = DataSearch.PerformScan(); //perform inital scan for media
 
             for (; ; )
             {
@@ -83,7 +83,7 @@ namespace CMD_Music_Player
                         continue;
                     }
                     Console.Write("Filename");
-                    Console.Write(String.Concat(Enumerable.Repeat(" ", 50-8)));
+                    Console.Write(String.Concat(Enumerable.Repeat(" ", 50 - 8)));
                     Console.WriteLine("Artist name");
                     foreach (string file in discoveredfiles)
                     {
@@ -109,7 +109,7 @@ namespace CMD_Music_Player
                     {
                         string medianame = command[1]; //get media name parameter
                         if (DataSearch.IsElementInList(medianame, discoveredfiles)) //check if the file exists
-                        { 
+                        {
                             string filepath = DataSearch.FindMediaPath(medianame, discoveredfiles);
                             Console.WriteLine("Playing " + filepath + "...");
                             try
@@ -223,7 +223,8 @@ namespace CMD_Music_Player
                         }
                         else if (commandupper == "LIST")
                         {
-                            
+                            Console.WriteLine("List of registered folders:");
+
                         }
                         else if (commandupper == "ADD")
                         {
@@ -237,8 +238,8 @@ namespace CMD_Music_Player
                         else { error("Command unknown. Type 'help' for a list of commands."); }
                     }
                     Console.WriteLine("Rescanning for media...");
-                    discoveredfiles = DataSearch.PerformScan(); //perform another scan for media
-                }
+                    (discoveredfolders, discoveredfiles) = DataSearch.PerformScan(); //perform another scan for media
+        }
                 else if (commandupper == "TOGGLE_FILECHECK")
                 {
                     //just for fun: a hidden command to disable checking of existence of a file.
@@ -353,7 +354,7 @@ namespace CMD_Music_Player
             }
             throw new Exception("Unable to retrieve path from search term: No match found.");
         }
-        public static List<string> PerformScan()
+        public static (List<string>, List<string>) PerformScan()
         {
             //scan list of folders
             Console.WriteLine("Initialising music index...");
@@ -378,7 +379,7 @@ namespace CMD_Music_Player
                 }
             }
             Console.WriteLine(discoveredfiles.Count + " files found.");
-            return discoveredfiles;
+            return (registeredfolders, discoveredfiles);
         }
     }
     static class ProgressBar
