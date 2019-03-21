@@ -25,7 +25,7 @@ namespace CMD_Music_Player.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("c:\\users\\daniel\\music")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string RegisteredFolders {
             get {
                 return ((string)(this["RegisteredFolders"]));

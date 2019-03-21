@@ -51,29 +51,7 @@ namespace CMD_Music_Player
         {
             Console.ForegroundColor = ConsoleColor.White;
 
-            //scan list of folders
-            Console.WriteLine("Initialising music index...");
-            List<string> registeredfolders = new List<string> { }; //empty list to hold list of folders containing music
-            foreach (string path in
-                Properties.Settings.Default.RegisteredFolders.Split(
-                    new char[] { '^', '^', '^' }, //folder entries are separated by three carats.
-                    StringSplitOptions.RemoveEmptyEntries
-                )
-            ) registeredfolders.Add(path); //reconstruct list of folder paths from stored string
-            //check for music in the application folder if enabled.
-            if (Properties.Settings.Default.RegisterAppDirectory) registeredfolders.Add(AppDomain.CurrentDomain.BaseDirectory);
-
-            //Perform a recursive search on each folder for music files
-            Console.WriteLine("Scanning registered folders...");
-            List<string> discoveredfiles = new List<string> { };
-            foreach (string folder in registeredfolders)
-            {
-                foreach (string file in DataSearch.ScanForMedia(folder))
-                {
-                    discoveredfiles.Add(file);
-                }
-            }
-            Console.WriteLine(discoveredfiles.Count + " files found.");
+            List<string> discoveredfiles = DataSearch.PerformScan(); //perform inital scan for media
 
             for (; ; )
             {
@@ -85,19 +63,25 @@ namespace CMD_Music_Player
                 if (commandupper == "HELP")
                 {
                     foreach (string line in new string[] { "List of commands:" ,
-                                             "\tplay" ,
-                                             "\tstop" ,
-                                             "\tpause" ,
-                                             "" ,
-                                             "\tpos" ,
-                                             "\tgoto" ,
+                                             "\tplay",
+                                             "\tstop",
+                                             "\tpause",
                                              "",
-                                            "\tls" ,
-                                            "\texit"})
+                                             "\tpos",
+                                             "\tgoto",
+                                             "",
+                                             "\tls",
+                                             "\tmanage_folders",
+                                             "\texit"})
                     { Console.WriteLine(line); }
                 }
                 else if (commandupper == "LS")
                 {
+                    if (discoveredfiles.Count == 0)
+                    {
+                        error("No music is in your library. :(\nType \"manage_folders\" to add a folder containing music.");
+                        continue;
+                    }
                     Console.Write("Filename");
                     Console.Write(String.Concat(Enumerable.Repeat(" ", 50-8)));
                     Console.WriteLine("Artist name");
@@ -140,6 +124,7 @@ namespace CMD_Music_Player
                 }
                 else if (commandupper == "STOP") { player.controls.stop(); }
                 else if (commandupper == "PAUSE") { player.controls.pause(); }
+
                 else if (commandupper == "POS")
                 {
                     if (IsMediaSelected()) Console.WriteLine(CreateBarFromMediaInfo());
@@ -215,6 +200,45 @@ namespace CMD_Music_Player
                     Console.WriteLine(CreateBarFromMediaInfo());
                 }
 
+                else if (commandupper == "MANAGE_FOLDERS")
+                {
+                    Console.WriteLine("Entering folder manager...\nType help for list of commands.");
+                    for (; ; )
+                    {
+                        Console.Write(":");
+                        command = CommandLineToArgs(Console.ReadLine());
+                        if (command.Length == 0) continue;
+                        commandupper = command[0].ToUpper();
+
+                        if (commandupper == "HELP")
+                        {
+                            foreach (string line in new string[] { "List of commands:" ,
+                                             "\tlist",
+                                             "\tadd",
+                                             "\tdel",
+                                             "",
+                                             "\thelp",
+                                             "\texit"})
+                            { Console.WriteLine(line); }
+                        }
+                        else if (commandupper == "LIST")
+                        {
+                            
+                        }
+                        else if (commandupper == "ADD")
+                        {
+
+                        }
+                        else if (commandupper == "DEL")
+                        {
+
+                        }
+                        else if (commandupper == "EXIT") break;
+                        else { error("Command unknown. Type 'help' for a list of commands."); }
+                    }
+                    Console.WriteLine("Rescanning for media...");
+                    discoveredfiles = DataSearch.PerformScan(); //perform another scan for media
+                }
                 else if (commandupper == "TOGGLE_FILECHECK")
                 {
                     //just for fun: a hidden command to disable checking of existence of a file.
@@ -328,6 +352,33 @@ namespace CMD_Music_Player
                 if (element.ToUpper().Contains(SearchElement)) return element;
             }
             throw new Exception("Unable to retrieve path from search term: No match found.");
+        }
+        public static List<string> PerformScan()
+        {
+            //scan list of folders
+            Console.WriteLine("Initialising music index...");
+            List<string> registeredfolders = new List<string> { }; //empty list to hold list of folders containing music
+            foreach (string path in
+                Properties.Settings.Default.RegisteredFolders.Split(
+                    new char[] { '^', '^', '^' }, //folder entries are separated by three carats.
+                    StringSplitOptions.RemoveEmptyEntries
+                )
+            ) registeredfolders.Add(path); //reconstruct list of folder paths from stored string
+            //check for music in the application folder if enabled.
+            if (Properties.Settings.Default.RegisterAppDirectory) registeredfolders.Add(AppDomain.CurrentDomain.BaseDirectory);
+
+            //Perform a recursive search on each folder for music files
+            Console.WriteLine("Scanning registered folders...");
+            List<string> discoveredfiles = new List<string> { };
+            foreach (string folder in registeredfolders)
+            {
+                foreach (string file in DataSearch.ScanForMedia(folder))
+                {
+                    discoveredfiles.Add(file);
+                }
+            }
+            Console.WriteLine(discoveredfiles.Count + " files found.");
+            return discoveredfiles;
         }
     }
     static class ProgressBar

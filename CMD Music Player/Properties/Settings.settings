@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="RegisteredFolders" Type="System.String" Scope="User">
-      <Value Profile="(Default)">c:\users\daniel\music</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="RegisterAppDirectory" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
