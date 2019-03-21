@@ -13,10 +13,16 @@ namespace CMD_Music_Player
         //https://docs.microsoft.com/en-us/dotnet/api/system.globalization.textinfo.totitlecase?redirectedfrom=MSDN&view=netframework-4.7.2#System_Globalization_TextInfo_ToTitleCase_System_String_
         static TextInfo TextCaseConverter = new CultureInfo("en-GB", false).TextInfo;
 
-        static bool bypassfilecheck = false;
+        public static bool bypassfilecheck = false;
         public static void error(string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        public static void warning(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine(message);
             Console.ForegroundColor = ConsoleColor.White;
         }
@@ -118,12 +124,13 @@ namespace CMD_Music_Player
                     else
                     {
                         string medianame = command[1]; //get media name parameter
-                        if (DataSearch.IsElementInList(medianame, discoveredfiles) || bypassfilecheck) //check if either the file exists, or if said check is disabled.
-                        {
-                            Console.WriteLine("Playing " + medianame + "...");
+                        if (DataSearch.IsElementInList(medianame, discoveredfiles)) //check if the file exists
+                        { 
+                            string filepath = DataSearch.FindMediaPath(medianame, discoveredfiles);
+                            Console.WriteLine("Playing " + filepath + "...");
                             try
                             {
-                                player.URL = DataSearch.FindMediaPath(medianame, discoveredfiles);
+                                player.URL = filepath;
                                 player.controls.play();
                             }
                             catch (Exception err) { error("Error playing file: " + err.Message); }
@@ -170,13 +177,13 @@ namespace CMD_Music_Player
 
                     string[] strtimeargs = command[1].Split(Char.Parse(":"));
                     if (strtimeargs.Length < 1 || strtimeargs.Length > 3) error(syntax);
-                    strtimeargs.Reverse(); //reverse it so it is now in the ss:mm:hh format. This makes it easier to process.
                     List<double> timeargs = new List<double>();
 
                     try
                     {
-                        foreach (string item in strtimeargs)
+                        for (int i = strtimeargs.Length; i-- > 0;) //reverse it so it is now in the ss:mm:hh format. This makes it easier to process.
                         {
+                            string item = strtimeargs[i];
                             if (item == "") { error(syntax); continue; }
                             timeargs.Add(Convert.ToDouble(item)); //double is bulletproof since it is a 64 bit number, so it will overflow after 5.38 millenia.
                         }
@@ -191,18 +198,31 @@ namespace CMD_Music_Player
                         multiplier *= 60; //multiple the multipler by 60 (sequence is 1,60,3600)
                     }
                     //is this longer than the length of the song?
-                    if (seconds > player.currentMedia.duration) error("Timecode is below 0 seconds.");
+                    if (seconds > player.currentMedia.duration)
+                    {
+                        error("Timecode exceeds song length.");
+                        continue;
+                    }
                     //or is it smaller than 0 ? 
-                    player.controls.currentPosition = seconds;
+                    if (seconds < 0)
+                    {
+                        error("Timecode is below 0 seconds.");
+                        continue;
+                    }
 
+                    //go to the position and draw a progress bar.
+                    player.controls.currentPosition = seconds;
                     Console.WriteLine(CreateBarFromMediaInfo());
                 }
 
                 else if (commandupper == "TOGGLE_FILECHECK")
                 {
-                    //just for fun: disables checking of existence of a file. this could allow for lots of possible input, such as http addresses pointing to media
-                    bypassfilecheck = !bypassfilecheck;
-                    Console.WriteLine(!bypassfilecheck);
+                    //just for fun: a hidden command to disable checking of existence of a file.
+                    //this could allow for lots of possible input, such as http addresses pointing to media.
+
+                    bypassfilecheck = !bypassfilecheck; //invert state
+                    if (bypassfilecheck) warning("Warning: Filechecks have been disabled. This can result in unexpected behavior."); //obligatory warning message
+                    else Console.WriteLine("Filechecks enabled.");
                 }
                 else if (commandupper == "EXIT") { Environment.Exit(0); }
                 else { error("Command unknown. Type 'help' for a list of commands."); }
@@ -289,21 +309,25 @@ namespace CMD_Music_Player
         }
         public static bool IsElementInList(string SearchElement, List<string> ListToTest)
         {
+            if (Program.bypassfilecheck) return true; //check for override
+
             //Simple function to check if a test string appears inside a list of strings
+            SearchElement = SearchElement.ToUpper();
             foreach (string element in ListToTest)
             {
-                if (SearchElement == element) return true;
+                if (element.ToUpper().Contains(SearchElement)) return true;
             }
             return false;
         }
         public static string FindMediaPath(string SearchElement, List<string> ListToTest)
         {
             //Very similar to IsElementInList, but returns the filepath from the list.
+            SearchElement = SearchElement.ToUpper();
             foreach (string element in ListToTest)
             {
-                if (SearchElement == element) return element;
+                if (element.ToUpper().Contains(SearchElement)) return element;
             }
-            return "";
+            throw new Exception("Unable to retrieve path from search term: No match found.");
         }
     }
     static class ProgressBar
