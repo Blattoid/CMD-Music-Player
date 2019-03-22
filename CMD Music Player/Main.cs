@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 
 namespace CMD_Music_Player
@@ -26,6 +27,13 @@ namespace CMD_Music_Player
             Console.WriteLine(message);
             Console.ForegroundColor = ConsoleColor.White;
         }
+        public static void success(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+
         static bool IsMediaSelected()
         {
             bool answer;
@@ -46,12 +54,22 @@ namespace CMD_Music_Player
                                            barwidth: Console.WindowWidth - 2,
                                            barsuffix: "] " + player.controls.currentPositionString + "/" + player.currentMedia.durationString);
         }
+        static void SaveConfiguration()
+        {
+            Properties.Settings.Default.Save();
+            success("Saved configuration!");
+        }
 
+        static StringCollection discoveredfiles = new StringCollection();
         static void Main(string[] args)
         {
             Console.ForegroundColor = ConsoleColor.White;
 
-            (List<string> registeredfolders, List<string> discoveredfiles) = FileSearch.PerformScan(); //perform inital scan for media
+            //attempt to read the list of registered folders from the stored configuration.
+            try { int x = Properties.Settings.Default.RegisteredFolders.Count; }
+            catch { Properties.Settings.Default.RegisteredFolders = new StringCollection(); } //error handling if the list is empty
+
+            discoveredfiles = FileSearch.PerformScan(); //perform inital scan for media
 
             for (; ; )
             {
@@ -134,7 +152,8 @@ namespace CMD_Music_Player
                 }
                 else if (commandupper == "INFO")
                 {
-                    if (player.currentMedia == null) {
+                    if (player.currentMedia == null)
+                    {
                         error("No media is loaded.");
                         continue;
                     }
@@ -218,13 +237,14 @@ namespace CMD_Music_Player
                                              "\tdel",
                                              "",
                                              "\thelp",
-                                             "\texit"})
+                                             "\texit",
+                                             "Changes are saved upon executing the \"exit\" command."})
                             { Console.WriteLine(line); }
                         }
                         else if (commandupper == "LIST")
                         {
                             Console.WriteLine("List of registered folders:");
-                            foreach (string path in registeredfolders)
+                            foreach (string path in Properties.Settings.Default.RegisteredFolders)
                             {
                                 if (path == AppDomain.CurrentDomain.BaseDirectory) Console.WriteLine("* " + path);
                                 else Console.WriteLine(path);
@@ -232,13 +252,25 @@ namespace CMD_Music_Player
                         }
                         else if (commandupper == "ADD")
                         {
-                            Console.Write("Enter the full filepath to the folder below.\nMake sure to include the drive letter.\n? ");
+                            //query for folderpath to add
+                            Console.Write("Enter the full filepath to the folder below.\nMake sure to include the drive letter.\n?");
                             string folderpath = Console.ReadLine();
                             if (!(Directory.Exists(folderpath)))
                             {
                                 error("Folder doesn't exist.");
                                 continue;
                             }
+                            //add the path if it doesn't already exist.
+                            try
+                            {
+                                if (Properties.Settings.Default.RegisteredFolders.Contains(folderpath)) error("Folder already registered.");
+                                else
+                                {
+                                    Properties.Settings.Default.RegisteredFolders.Add(folderpath);
+                                    success("Successfully added folder!");
+                                }
+                            }
+                            catch { error("Internal error."); }
                         }
                         else if (commandupper == "DEL")
                         {
@@ -247,9 +279,10 @@ namespace CMD_Music_Player
                         else if (commandupper == "EXIT") break;
                         else { error("Command unknown. Type 'help' for a list of commands."); }
                     }
+                    SaveConfiguration();
                     Console.WriteLine("Rescanning for media...");
-                    (registeredfolders, discoveredfiles) = FileSearch.PerformScan(); //perform another scan for media
-        }
+                    discoveredfiles = FileSearch.PerformScan(); //perform another scan for media
+                }
                 else if (commandupper == "TOGGLE_FILECHECK")
                 {
                     //just for fun: a hidden command to disable checking of existence of a file.
