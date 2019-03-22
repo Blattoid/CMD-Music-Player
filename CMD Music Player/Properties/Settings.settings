@@ -2,10 +2,10 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="CMD_Music_Player.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="RegisteredFolders" Type="System.String" Scope="User">
+    <Setting Name="RegisteredFolders" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="RegisterAppDirectory" Type="System.Boolean" Scope="User">
+    <Setting Name="RegisterAppFolder" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
   </Settings>

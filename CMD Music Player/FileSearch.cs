@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Collections.Generic;
 
 namespace CMD_Music_Player
 {
@@ -78,17 +78,12 @@ namespace CMD_Music_Player
         public static (List<string>, List<string>) PerformScan()
         {
             //scan list of folders
-            Console.WriteLine("Initialising music index...");
+            Console.WriteLine("Initialising registered folder index...");
             List<string> registeredfolders = new List<string> { }; //empty list to hold list of folders containing music
+            foreach (string path in Properties.Settings.Default.RegisteredFolders) registeredfolders.Add(path); //reconstruct list of folder paths from stored paths
 
-            foreach (string path in
-                Properties.Settings.Default.RegisteredFolders.Split(
-                    new char[] { '^', '^', '^' }, //folder entries are separated by three carats.
-                    StringSplitOptions.RemoveEmptyEntries
-                )
-            ) registeredfolders.Add(path); //reconstruct list of folder paths from stored string
-                                           //check for music in the application folder if enabled.
-            if (Properties.Settings.Default.RegisterAppDirectory) registeredfolders.Add(AppDomain.CurrentDomain.BaseDirectory);
+            //check for music in the application folder if enabled.
+            if (Properties.Settings.Default.RegisterAppFolder) registeredfolders.Add(AppDomain.CurrentDomain.BaseDirectory);
 
             //Perform a recursive search on each folder for music files
             Console.WriteLine("Scanning registered folders...");

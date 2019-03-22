@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Globalization;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace CMD_Music_Player
@@ -232,7 +232,13 @@ namespace CMD_Music_Player
                         }
                         else if (commandupper == "ADD")
                         {
-
+                            Console.Write("Enter the full filepath to the folder below.\nMake sure to include the drive letter.\n? ");
+                            string folderpath = Console.ReadLine();
+                            if (!(Directory.Exists(folderpath)))
+                            {
+                                error("Folder doesn't exist.");
+                                continue;
+                            }
                         }
                         else if (commandupper == "DEL")
                         {

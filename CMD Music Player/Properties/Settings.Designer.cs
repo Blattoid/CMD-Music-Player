@@ -25,10 +25,9 @@ namespace CMD_Music_Player.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string RegisteredFolders {
+        public global::System.Collections.Specialized.StringCollection RegisteredFolders {
             get {
-                return ((string)(this["RegisteredFolders"]));
+                return ((global::System.Collections.Specialized.StringCollection)(this["RegisteredFolders"]));
             }
             set {
                 this["RegisteredFolders"] = value;
@@ -38,12 +37,12 @@ namespace CMD_Music_Player.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool RegisterAppDirectory {
+        public bool RegisterAppFolder {
             get {
-                return ((bool)(this["RegisterAppDirectory"]));
+                return ((bool)(this["RegisterAppFolder"]));
             }
             set {
-                this["RegisterAppDirectory"] = value;
+                this["RegisterAppFolder"] = value;
             }
         }
     }
