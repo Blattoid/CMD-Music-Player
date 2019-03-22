@@ -81,19 +81,20 @@ namespace CMD_Music_Player
                 if (commandupper == "HELP")
                 {
                     foreach (string line in new string[] { "List of commands:" ,
-                                             "\tplay",
-                                             "\tstop",
-                                             "\tpause",
+                                             "\tplay / pl",
+                                             "\tstop / s",
+                                             "\tpause / pa",
                                              "",
-                                             "\tpos",
-                                             "\tgoto",
+                                             "\tpos / ?",
+                                             "\tgoto / g",
                                              "",
-                                             "\tls",
-                                             "\tmanage_folders",
-                                             "\texit"})
+                                             "\tlist / ls",
+                                             "\tmanage_folders / mf",
+                                             "\thelp / h",
+                                             "\tquit / q"})
                     { Console.WriteLine(line); }
                 }
-                else if (commandupper == "LS")
+                else if (commandupper == "LIST" || commandupper == "LS")
                 {
                     if (discoveredfiles.Count == 0)
                     {
@@ -120,7 +121,7 @@ namespace CMD_Music_Player
                         Console.WriteLine(line);
                     }
                 }
-                else if (commandupper == "PLAY")
+                else if (commandupper == "PLAY" || commandupper == "PL")
                 {
                     if (command.Length == 1) { player.controls.play(); }
                     else
@@ -140,17 +141,17 @@ namespace CMD_Music_Player
                         else { error("Error playing file: File doesn't exist."); }
                     }
                 }
-                else if (commandupper == "STOP") { player.controls.stop(); }
-                else if (commandupper == "PAUSE") { player.controls.pause(); }
+                else if (commandupper == "STOP" || commandupper == "S") { player.controls.stop(); }
+                else if (commandupper == "PAUSE" || commandupper == "PA") { player.controls.pause(); }
 
-                else if (commandupper == "POS")
+                else if (commandupper == "POS" || commandupper == "?")
                 {
                     if (IsMediaSelected()) Console.WriteLine(CreateBarFromMediaInfo());
                     else error("No media is loaded.");
 
 
                 }
-                else if (commandupper == "INFO")
+                else if (commandupper == "INFO" || commandupper == "I")
                 {
                     if (player.currentMedia == null)
                     {
@@ -165,7 +166,7 @@ namespace CMD_Music_Player
                         Console.WriteLine(name + ": " + value);
                     }
                 }
-                else if (commandupper == "GOTO")
+                else if (commandupper == "GOTO" || commandupper == "G")
                 {
                     string syntax = "Syntax: [hh:][mm:]ss";
                     if (!IsMediaSelected())
@@ -219,7 +220,7 @@ namespace CMD_Music_Player
                     Console.WriteLine(CreateBarFromMediaInfo());
                 }
 
-                else if (commandupper == "MANAGE_FOLDERS")
+                else if (commandupper == "MANAGE_FOLDERS" || commandupper == "MF")
                 {
                     Console.WriteLine("Entering folder manager...\nType help for list of commands.");
                     for (; ; )
@@ -229,28 +230,30 @@ namespace CMD_Music_Player
                         if (command.Length == 0) continue;
                         commandupper = command[0].ToUpper();
 
-                        if (commandupper == "HELP")
+                        if (commandupper == "HELP" || commandupper == "H")
                         {
                             foreach (string line in new string[] { "List of commands:" ,
-                                             "\tlist",
-                                             "\tadd",
-                                             "\tdel",
+                                             "\tlist / ls",
+                                             "\tadd / a",
+                                             "\tdel / d",
                                              "",
-                                             "\thelp",
-                                             "\texit",
+                                             "\thelp / h",
+                                             "\texit / e",
                                              "Changes are saved upon executing the \"exit\" command."})
                             { Console.WriteLine(line); }
                         }
-                        else if (commandupper == "LIST")
+                        else if (commandupper == "LIST" || commandupper == "LS")
                         {
                             Console.WriteLine("List of registered folders:");
+                            int folderid = 0;
                             foreach (string path in Properties.Settings.Default.RegisteredFolders)
                             {
-                                if (path == AppDomain.CurrentDomain.BaseDirectory) Console.WriteLine("* " + path);
-                                else Console.WriteLine(path);
+                                Console.WriteLine("[" + folderid + "] " + path);
+                                folderid++;
                             }
+                            if (Properties.Settings.Default.RegisterAppFolder) Console.WriteLine("* " + AppDomain.CurrentDomain.BaseDirectory);
                         }
-                        else if (commandupper == "ADD")
+                        else if (commandupper == "ADD" || commandupper == "A")
                         {
                             //query for folderpath to add
                             Console.Write("Enter the full filepath to the folder below.\nMake sure to include the drive letter.\n?");
@@ -272,27 +275,52 @@ namespace CMD_Music_Player
                             }
                             catch { error("Internal error."); }
                         }
-                        else if (commandupper == "DEL")
+                        else if (commandupper == "DEL" || commandupper == "D")
                         {
+                            string userinput;
+                            int folderid;
+                            int i = 0;
+                            //has the user already specified the folder id as an argument? if not, ask them for the id.
+                            if (!int.TryParse(command[1], out int n))
+                            {
+                                Console.WriteLine("List of registered folders:");
+                                foreach (string path in Properties.Settings.Default.RegisteredFolders)
+                                {
+                                    Console.WriteLine("[" + i + "] " + path);
+                                    i++;
+                                }
+                                Console.Write("Enter folder id to de-register: ");
+                                userinput = Console.ReadLine();
+                            }
+                            else userinput = command[1];
+                            try { folderid = Convert.ToInt16(userinput); }
+                            catch
+                            {
+                                error("Invalid input: Must be a number.");
+                                continue;
+                            }
 
+                            if (folderid > Properties.Settings.Default.RegisteredFolders.Count - 1) error("Folder ID exceeds maximum ID.");
+                            Properties.Settings.Default.RegisteredFolders.RemoveAt(folderid);
+                            success("De-registered folder #" + folderid);
                         }
-                        else if (commandupper == "EXIT") break;
+                        else if (commandupper == "EXIT" || commandupper == "E") break;
                         else { error("Command unknown. Type 'help' for a list of commands."); }
                     }
                     SaveConfiguration();
                     Console.WriteLine("Rescanning for media...");
                     discoveredfiles = FileSearch.PerformScan(); //perform another scan for media
                 }
-                else if (commandupper == "TOGGLE_FILECHECK")
+                else if (commandupper == "TOGGLE_FILECHECK" || commandupper == "TF")
                 {
                     //just for fun: a hidden command to disable checking of existence of a file.
                     //this could allow for lots of possible input, such as http addresses pointing to media.
 
                     bypassfilecheck = !bypassfilecheck; //invert state
                     if (bypassfilecheck) warning("Warning: Filechecks have been disabled. This can result in unexpected behavior."); //obligatory warning message
-                    else Console.WriteLine("Filechecks enabled.");
+                    else success("Filechecks enabled.");
                 }
-                else if (commandupper == "EXIT") { Environment.Exit(0); }
+                else if (commandupper == "QUIT" || commandupper == "Q") { Environment.Exit(0); }
                 else { error("Command unknown. Type 'help' for a list of commands."); }
             }
         }
