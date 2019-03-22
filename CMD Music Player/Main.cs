@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace CMD_Music_Player
 {
-    static class Program
+    public static class Core
     {
         public static WMPLib.WindowsMediaPlayer player = new WMPLib.WindowsMediaPlayer(); //the heart of this program
         //https://docs.microsoft.com/en-us/dotnet/api/system.globalization.textinfo.totitlecase?redirectedfrom=MSDN&view=netframework-4.7.2#System_Globalization_TextInfo_ToTitleCase_System_String_
@@ -51,7 +51,7 @@ namespace CMD_Music_Player
         {
             Console.ForegroundColor = ConsoleColor.White;
 
-            (List<string> registeredfolders, List<string> discoveredfiles) = DataSearch.PerformScan(); //perform inital scan for media
+            (List<string> registeredfolders, List<string> discoveredfiles) = FileSearch.PerformScan(); //perform inital scan for media
 
             for (; ; )
             {
@@ -108,9 +108,9 @@ namespace CMD_Music_Player
                     else
                     {
                         string medianame = command[1]; //get media name parameter
-                        if (DataSearch.IsElementInList(medianame, discoveredfiles)) //check if the file exists
+                        if (FileSearch.IsElementInList(medianame, discoveredfiles)) //check if the file exists
                         {
-                            string filepath = DataSearch.FindMediaPath(medianame, discoveredfiles);
+                            string filepath = FileSearch.FindMediaPath(medianame, discoveredfiles);
                             Console.WriteLine("Playing " + filepath + "...");
                             try
                             {
@@ -242,7 +242,7 @@ namespace CMD_Music_Player
                         else { error("Command unknown. Type 'help' for a list of commands."); }
                     }
                     Console.WriteLine("Rescanning for media...");
-                    (registeredfolders, discoveredfiles) = DataSearch.PerformScan(); //perform another scan for media
+                    (registeredfolders, discoveredfiles) = FileSearch.PerformScan(); //perform another scan for media
         }
                 else if (commandupper == "TOGGLE_FILECHECK")
                 {
@@ -284,160 +284,6 @@ namespace CMD_Music_Player
             {
                 Marshal.FreeHGlobal(argv);
             }
-        }
-    }
-
-    static class DataSearch
-    {
-        public static List<string> ScanForMedia(string searchfolder, bool recursive = true, bool verbose = false)
-        {
-            List<string> found_files = new List<string> { }; //list to store discovered files.
-
-            //check if we have permission to access the folder
-            try { Directory.GetFiles(searchfolder); }
-            catch { return new List<string> { }; }
-
-            //add all the files in the folder that are music files.
-            foreach (string filepath in Directory.GetFiles(searchfolder))
-            {
-                if (IsSupportedFiletype(filepath))
-                {
-                    if (verbose) Console.WriteLine("Discovered " + filepath);
-                    found_files.Add(filepath);
-                }
-            }
-
-            //recursively check all subdirectories if flag was set
-            if (recursive)
-            {
-                foreach (string folderpath in Directory.GetDirectories(searchfolder))
-                {
-                    if (verbose) Console.WriteLine("Traversing " + folderpath);
-                    List<string> sub_files = ScanForMedia(folderpath);
-                    foreach (string file in sub_files)
-                    {
-                        if (IsSupportedFiletype(file)) found_files.Add(file);
-
-                    }
-                }
-            }
-
-            //return the list of discovered files
-            if (verbose) Console.WriteLine(found_files.Count + " files found.");
-            return found_files;
-        }
-        static bool IsSupportedFiletype(string filename)
-        {
-            //Simple function to check if a filename ends with an acceptable extension
-            string[] supportedformats = new string[] { ".3g2", ".3gp", ".3gp2", ".3gpp", ".aac", ".adt", ".adts", ".aif", ".aifc", ".aiff", ".asf", ".asx", ".au", ".avi", ".cda", ".dvr-ms", ".flac", ".ivf", ".m1v", ".m2ts", ".m3u", ".m4a", ".m4v", ".mid", ".midi", ".mov", ".mp2", ".mp3", ".mp4", ".mp4v", ".mpa", ".mpe", ".mpeg", ".mpg", ".rmi", ".snd", ".wav", ".wax", ".wm", ".wma", ".wmd", ".wms", ".wmv", ".wmx", ".wmz", ".wpl", ".wvx" };
-            foreach (string type in supportedformats)
-            {
-                if (filename.EndsWith(type)) return true;
-            }
-            return false;
-        }
-        public static bool IsElementInList(string SearchElement, List<string> ListToTest)
-        {
-            if (Program.bypassfilecheck) return true; //check for override
-
-            //Simple function to check if a test string appears inside a list of strings
-            SearchElement = SearchElement.ToUpper();
-            foreach (string element in ListToTest)
-            {
-                if (element.ToUpper().Contains(SearchElement)) return true;
-            }
-            return false;
-        }
-        public static string FindMediaPath(string SearchElement, List<string> ListToTest)
-        {
-            //Very similar to IsElementInList, but returns the filepath from the list.
-            SearchElement = SearchElement.ToUpper();
-            foreach (string element in ListToTest)
-            {
-                if (element.ToUpper().Contains(SearchElement)) return element;
-            }
-            throw new Exception("Unable to retrieve path from search term: No match found.");
-        }
-        public static (List<string>, List<string>) PerformScan()
-        {
-            //scan list of folders
-            Console.WriteLine("Initialising music index...");
-            List<string> registeredfolders = new List<string> { }; //empty list to hold list of folders containing music
-            foreach (string path in
-                Properties.Settings.Default.RegisteredFolders.Split(
-                    new char[] { '^', '^', '^' }, //folder entries are separated by three carats.
-                    StringSplitOptions.RemoveEmptyEntries
-                )
-            ) registeredfolders.Add(path); //reconstruct list of folder paths from stored string
-            //check for music in the application folder if enabled.
-            if (Properties.Settings.Default.RegisterAppDirectory) registeredfolders.Add(AppDomain.CurrentDomain.BaseDirectory);
-
-            //Perform a recursive search on each folder for music files
-            Console.WriteLine("Scanning registered folders...");
-            List<string> discoveredfiles = new List<string> { };
-            foreach (string folder in registeredfolders)
-            {
-                foreach (string file in DataSearch.ScanForMedia(folder))
-                {
-                    discoveredfiles.Add(file);
-                }
-            }
-            Console.WriteLine(discoveredfiles.Count + " files found.");
-            return (registeredfolders, discoveredfiles);
-        }
-    }
-    static class ProgressBar
-    {
-        static decimal Map(this decimal value, decimal fromSource, decimal toSource, decimal fromTarget, decimal toTarget)
-        {
-            return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
-        }
-
-        //this was converted by hand from Python to C#.
-        public static string GenerateBar(double value, double maxvalue,
-            string barprefix = "[", string filledchar = "=", string pointerchar = ">",
-            string emptychar = " ", string barsuffix = "]", int barwidth = 50)
-        {
-            //sanity checks to make sure nothing is going to break anything
-            if (value > maxvalue)
-            {
-                Program.error("Current value is bigger than max value!");
-                return "";
-            }
-            if (value < 0)
-            {
-                Program.error("Current value is smaller than 0!");
-                return "";
-            }
-            if (maxvalue == 0)
-            {
-                Program.error("Error generating bar: max length is 0." +
-                    "");
-                return "";
-            }
-
-            decimal percentage = (decimal)value / (decimal)maxvalue * 100; //calculate the percentage of progress
-                                                                           //calculate how much space the non-changing parts of the bar will take up
-            int length = (
-                barprefix.Length +
-                pointerchar.Length +
-                barsuffix.Length
-            );
-
-            //If that length is smaller than the barwidth, then there will literally be no space left for the bar to move. Oh well.
-            //adjust the bar to fit the space it has, using the length we just calculated
-            value = Convert.ToInt32(Map((decimal)value, 0, (decimal)maxvalue, 0, barwidth - length));
-            maxvalue = barwidth - length;
-
-            //construct the bar as a string
-            string bar = barprefix; //start with the bar prefix
-            bar += String.Concat(Enumerable.Repeat(filledchar, (int)value)); //the currently filled portion of the bar
-            bar += pointerchar;
-            bar += String.Concat(Enumerable.Repeat(emptychar, (int)maxvalue - (int)value)); //the empty portion of the bar
-            bar += barsuffix + " "; //separator
-
-            return bar; //send the finished thing back
-
         }
     }
 }
