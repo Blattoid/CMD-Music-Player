@@ -3,33 +3,34 @@ using System.Linq;
 
 namespace CMD_Music_Player
 {
-    public static class ProgressBar
+    public class ProgressBar
     {
-        static decimal Map(this decimal value, decimal fromSource, decimal toSource, decimal fromTarget, decimal toTarget)
+        private static HelperFunctions functions = new HelperFunctions();
+
+        decimal Map(decimal value, decimal fromSource, decimal toSource, decimal fromTarget, decimal toTarget)
         {
             return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
         }
 
         //this was converted by hand from Python to C#.
-        public static string GenerateBar(double value, double maxvalue,
+        public string GenerateBar(double value, double maxvalue,
             string barprefix = "[", string filledchar = "=", string pointerchar = ">",
             string emptychar = " ", string barsuffix = "]", int barwidth = 50)
         {
             //sanity checks to make sure nothing is going to break anything
             if (value > maxvalue)
             {
-                Core.error("Current value is bigger than max value!");
+                functions.Error("Current value is bigger than max value!");
                 return "";
             }
             if (value < 0)
             {
-                Core.error("Current value is smaller than 0!");
+                functions.Error("Current value is smaller than 0!");
                 return "";
             }
             if (maxvalue == 0)
             {
-                Core.error("Error generating bar: max length is 0." +
-                    "");
+                functions.Error("Error generating bar: max length is 0.");
                 return "";
             }
 

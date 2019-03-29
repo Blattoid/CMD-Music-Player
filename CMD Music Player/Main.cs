@@ -15,52 +15,11 @@ namespace CMD_Music_Player
         static TextInfo TextCaseConverter = new CultureInfo("en-GB", false).TextInfo;
 
         public static bool bypassfilecheck = false;
-        public static void error(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(message);
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-        public static void warning(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(message);
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-        public static void success(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(message);
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-
-        static bool IsMediaSelected()
-        {
-            bool answer;
-            try
-            {
-                string x = player.currentMedia.durationString;
-                answer = true;
-            }
-            catch { answer = false; }
-            return answer;
-        }
-        static string CreateBarFromMediaInfo()
-        {
-            //very simple; just returns a progress bar in a certain layout with the media information.
-            //this function only exists to prevent having to enter this very long command to get a standardised progress bar.
-            return ProgressBar.GenerateBar(player.controls.currentPosition,
-                                           player.currentMedia.duration,
-                                           barwidth: Console.WindowWidth - 2,
-                                           barsuffix: "] " + player.controls.currentPositionString + "/" + player.currentMedia.durationString);
-        }
-        static void SaveConfiguration()
-        {
-            Properties.Settings.Default.Save();
-            success("Saved configuration!");
-        }
-
+        static bool LoopEnabled = false;
         static StringCollection discoveredfiles = new StringCollection();
+        private static FileSearch fileSearch = new FileSearch();
+        private static HelperFunctions functions = new HelperFunctions();
+
         static void Main(string[] args)
         {
             Console.ForegroundColor = ConsoleColor.White;
@@ -69,7 +28,8 @@ namespace CMD_Music_Player
             try { int x = Properties.Settings.Default.RegisteredFolders.Count; }
             catch { Properties.Settings.Default.RegisteredFolders = new StringCollection(); } //error handling if the list is empty
 
-            discoveredfiles = FileSearch.PerformScan(); //perform inital scan for media
+            discoveredfiles = fileSearch.PerformScan(); //perform inital scan for media
+            //player.PlayStateChange += new WMPLib._WMPOCXEvents_PlayStateChangeEventHandler(player_PlayStateChange);
 
             for (; ; )
             {
@@ -98,7 +58,7 @@ namespace CMD_Music_Player
                 {
                     if (discoveredfiles.Count == 0)
                     {
-                        error("No music is in your library. :(\nType \"manage_folders\" to add a folder containing music.");
+                        functions.Error("No music is in your library. :(\nType \"manage_folders\" to add a folder containing music.");
                         continue;
                     }
                     Console.Write("Filename");
@@ -127,18 +87,18 @@ namespace CMD_Music_Player
                     else
                     {
                         string medianame = command[1]; //get media name parameter
-                        if (FileSearch.IsElementInList(medianame, discoveredfiles)) //check if the file exists
+                        if (fileSearch.IsElementInList(medianame, discoveredfiles)) //check if the file exists
                         {
-                            string filepath = FileSearch.FindMediaPath(medianame, discoveredfiles);
+                            string filepath = fileSearch.FindMediaPath(medianame, discoveredfiles);
                             Console.WriteLine("Playing " + filepath + "...");
                             try
                             {
                                 player.URL = filepath;
                                 player.controls.play();
                             }
-                            catch (Exception err) { error("Error playing file: " + err.Message); }
+                            catch (Exception err) { functions.Error("Error playing file: " + err.Message); }
                         }
-                        else { error("Error playing file: File doesn't exist."); }
+                        else { functions.Error("Error playing file: File doesn't exist."); }
                     }
                 }
                 else if (commandupper == "STOP" || commandupper == "S") { player.controls.stop(); }
@@ -146,8 +106,8 @@ namespace CMD_Music_Player
 
                 else if (commandupper == "POS" || commandupper == "?")
                 {
-                    if (IsMediaSelected()) Console.WriteLine(CreateBarFromMediaInfo());
-                    else error("No media is loaded.");
+                    if (functions.IsMediaSelected()) Console.WriteLine(functions.CreateBarFromMediaInfo());
+                    else functions.Error("No media is loaded.");
 
 
                 }
@@ -155,7 +115,7 @@ namespace CMD_Music_Player
                 {
                     if (player.currentMedia == null)
                     {
-                        error("No media is loaded.");
+                        functions.Error("No media is loaded.");
                         continue;
                     }
                     for (int i = 0; i < player.currentMedia.attributeCount; i++)
@@ -169,19 +129,19 @@ namespace CMD_Music_Player
                 else if (commandupper == "GOTO" || commandupper == "G")
                 {
                     string syntax = "Syntax: [hh:][mm:]ss";
-                    if (!IsMediaSelected())
+                    if (!functions.IsMediaSelected())
                     {
-                        error("No media is loaded.");
+                        functions.Error("No media is loaded.");
                         continue;
                     }
                     if (command.Length < 2)
                     {
-                        error(syntax);
+                        functions.Error(syntax);
                         continue;
                     }
 
                     string[] strtimeargs = command[1].Split(Char.Parse(":"));
-                    if (strtimeargs.Length < 1 || strtimeargs.Length > 3) error(syntax);
+                    if (strtimeargs.Length < 1 || strtimeargs.Length > 3) functions.Error(syntax);
                     List<double> timeargs = new List<double>();
 
                     try
@@ -189,11 +149,11 @@ namespace CMD_Music_Player
                         for (int i = strtimeargs.Length; i-- > 0;) //reverse it so it is now in the ss:mm:hh format. This makes it easier to process.
                         {
                             string item = strtimeargs[i];
-                            if (item == "") { error(syntax); continue; }
+                            if (item == "") { functions.Error(syntax); continue; }
                             timeargs.Add(Convert.ToDouble(item)); //double is bulletproof since it is a 64 bit number, so it will overflow after 5.38 millenia.
                         }
                     }
-                    catch (Exception err) { error("Invalid time code: " + err.Message); continue; }
+                    catch (Exception err) { functions.Error("Invalid time code: " + err.Message); continue; }
                     //parse into seconds
                     float seconds = 0;
                     int multiplier = 1; //multiply the item by this
@@ -205,19 +165,19 @@ namespace CMD_Music_Player
                     //is this longer than the length of the song?
                     if (seconds > player.currentMedia.duration)
                     {
-                        error("Timecode exceeds song length.");
+                        functions.Error("Timecode exceeds song length.");
                         continue;
                     }
                     //or is it smaller than 0 ? 
                     if (seconds < 0)
                     {
-                        error("Timecode is below 0 seconds.");
+                        functions.Error("Timecode is below 0 seconds.");
                         continue;
                     }
 
                     //go to the position and draw a progress bar.
                     player.controls.currentPosition = seconds;
-                    Console.WriteLine(CreateBarFromMediaInfo());
+                    Console.WriteLine(functions.CreateBarFromMediaInfo());
                 }
 
                 else if (commandupper == "MANAGE_FOLDERS" || commandupper == "MF")
@@ -260,20 +220,20 @@ namespace CMD_Music_Player
                             string folderpath = Console.ReadLine();
                             if (!(Directory.Exists(folderpath)))
                             {
-                                error("Folder doesn't exist.");
+                                functions.Error("Folder doesn't exist.");
                                 continue;
                             }
                             //add the path if it doesn't already exist.
                             try
                             {
-                                if (Properties.Settings.Default.RegisteredFolders.Contains(folderpath)) error("Folder already registered.");
+                                if (Properties.Settings.Default.RegisteredFolders.Contains(folderpath)) functions.Error("Folder already registered.");
                                 else
                                 {
                                     Properties.Settings.Default.RegisteredFolders.Add(folderpath);
-                                    success("Successfully added folder!");
+                                    functions.Success("Successfully added folder!");
                                 }
                             }
-                            catch { error("Internal error."); }
+                            catch { functions.Error("Internal error."); }
                         }
                         else if (commandupper == "DEL" || commandupper == "D")
                         {
@@ -296,20 +256,20 @@ namespace CMD_Music_Player
                             try { folderid = Convert.ToInt16(userinput); }
                             catch
                             {
-                                error("Invalid input: Must be a number.");
+                                functions.Error("Invalid input: Must be a number.");
                                 continue;
                             }
 
-                            if (folderid > Properties.Settings.Default.RegisteredFolders.Count - 1) error("Folder ID exceeds maximum ID.");
+                            if (folderid > Properties.Settings.Default.RegisteredFolders.Count - 1) functions.Error("Folder ID exceeds maximum ID.");
                             Properties.Settings.Default.RegisteredFolders.RemoveAt(folderid);
-                            success("De-registered folder #" + folderid);
+                            functions.Success("De-registered folder #" + folderid);
                         }
                         else if (commandupper == "EXIT" || commandupper == "E") break;
-                        else { error("Command unknown. Type 'help' for a list of commands."); }
+                        else { functions.Error("Command unknown. Type 'help' for a list of commands."); }
                     }
-                    SaveConfiguration();
+                    functions.SaveConfiguration();
                     Console.WriteLine("Rescanning for media...");
-                    discoveredfiles = FileSearch.PerformScan(); //perform another scan for media
+                    discoveredfiles = fileSearch.PerformScan(); //perform another scan for media
                 }
                 else if (commandupper == "TOGGLE_FILECHECK" || commandupper == "TF")
                 {
@@ -317,14 +277,35 @@ namespace CMD_Music_Player
                     //this could allow for lots of possible input, such as http addresses pointing to media.
 
                     bypassfilecheck = !bypassfilecheck; //invert state
-                    if (bypassfilecheck) warning("Warning: Filechecks have been disabled. This can result in unexpected behavior."); //obligatory warning message
-                    else success("Filechecks enabled.");
+                    if (bypassfilecheck) functions.Warning("Warning: Filechecks have been disabled. This can result in unexpected behavior."); //obligatory warning message
+                    else functions.Success("Filechecks enabled.");
                 }
                 else if (commandupper == "QUIT" || commandupper == "Q") { Environment.Exit(0); }
-                else { error("Command unknown. Type 'help' for a list of commands."); }
+                else { functions.Error("Command unknown. Type 'help' for a list of commands."); }
             }
         }
 
+        /*static void player_PlayStateChange(int newstate)
+        {
+            Console.Write("PLAY STATE CHANGED! ");
+            switch (newstate)
+            {
+                case 0: Console.WriteLine("Undefined"); break;
+                case 1: Console.WriteLine("Stopped"); break;
+                case 2: Console.WriteLine("Paused"); break;
+                case 3: Console.WriteLine("Playing"); break;
+                case 4: Console.WriteLine("ScanForward"); break;
+                case 5: Console.WriteLine("ScanReverse"); break;
+                case 6: Console.WriteLine("Buffering"); break;
+                case 7: Console.WriteLine("Waiting"); break;
+                case 8: Console.WriteLine("MediaEnded"); break;
+                case 9: Console.WriteLine("Transitioning"); break;
+                case 10: Console.WriteLine("Ready"); break;
+                case 11: Console.WriteLine("Reconnecting"); break;
+                case 12: Console.WriteLine("Last"); break;
+                default: functions.Error(newstate.ToString()); break;
+            }
+        }*/
 
         //https://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp
         [DllImport("shell32.dll", SetLastError = true)]
