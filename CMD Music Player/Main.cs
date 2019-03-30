@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace CMD_Music_Player
 {
@@ -19,6 +20,7 @@ namespace CMD_Music_Player
         static StringCollection discoveredfiles = new StringCollection();
         private static FileSearch fileSearch = new FileSearch();
         private static HelperFunctions functions = new HelperFunctions();
+        private static ArduinoCharScreenInterface screen = new ArduinoCharScreenInterface();
 
         static void Main(string[] args)
         {
@@ -29,8 +31,11 @@ namespace CMD_Music_Player
             catch { Properties.Settings.Default.RegisteredFolders = new StringCollection(); } //error handling if the list is empty
 
             discoveredfiles = fileSearch.PerformScan(); //perform inital scan for media
-            //player.PlayStateChange += new WMPLib._WMPOCXEvents_PlayStateChangeEventHandler(player_PlayStateChange);
-
+            if (Properties.Settings.Default.ArduinoEnable)
+            {
+                screen.SerialPort = Properties.Settings.Default.ArduinoPort;
+                screen.Activate();
+            }
             for (; ; )
             {
                 Console.Write(">");
@@ -44,6 +49,7 @@ namespace CMD_Music_Player
                                              "\tplay / pl",
                                              "\tstop / s",
                                              "\tpause / pa",
+ "\tloop / l",
                                              "",
                                              "\tpos / ?",
                                              "\tgoto / g",
@@ -103,6 +109,16 @@ namespace CMD_Music_Player
                 }
                 else if (commandupper == "STOP" || commandupper == "S") { player.controls.stop(); }
                 else if (commandupper == "PAUSE" || commandupper == "PA") { player.controls.pause(); }
+                else if (commandupper == "LOOP" || commandupper == "L")
+                {
+                    LoopEnabled = !LoopEnabled; //toggle LoopEnabled.
+                    player.settings.setMode("loop", LoopEnabled); //tell the player to loop the media.
+
+                    //output result
+                    Console.Write("Looping is ");
+                    if (LoopEnabled) { Console.WriteLine("ENABLED."); }
+                    else { Console.WriteLine("DISABLED."); }
+                }
 
                 else if (commandupper == "POS" || commandupper == "?")
                 {
@@ -287,7 +303,6 @@ namespace CMD_Music_Player
 
         /*static void player_PlayStateChange(int newstate)
         {
-            Console.Write("PLAY STATE CHANGED! ");
             switch (newstate)
             {
                 case 0: Console.WriteLine("Undefined"); break;
@@ -306,7 +321,7 @@ namespace CMD_Music_Player
                 default: functions.Error(newstate.ToString()); break;
             }
         }*/
-
+        
         //https://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp
         [DllImport("shell32.dll", SetLastError = true)]
         static extern IntPtr CommandLineToArgvW(

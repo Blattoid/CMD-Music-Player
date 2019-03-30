@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArduinoCharScreenInterface.cs" />
     <Compile Include="FileSearch.cs" />
     <Compile Include="HelperFunctions.cs" />
     <Compile Include="Main.cs" />

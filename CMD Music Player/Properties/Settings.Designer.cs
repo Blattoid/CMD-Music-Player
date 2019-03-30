@@ -45,5 +45,29 @@ namespace CMD_Music_Player.Properties {
                 this["RegisterAppFolder"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ArduinoEnable {
+            get {
+                return ((bool)(this["ArduinoEnable"]));
+            }
+            set {
+                this["ArduinoEnable"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("99")]
+        public int ArduinoPort {
+            get {
+                return ((int)(this["ArduinoPort"]));
+            }
+            set {
+                this["ArduinoPort"] = value;
+            }
+        }
     }
 }
