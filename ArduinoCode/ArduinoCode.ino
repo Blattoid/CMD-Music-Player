@@ -9,13 +9,13 @@ NewLiquidCrystal_I2C lcd(I2C_ADDR, 2, 1, 0, 4, 5, 6, 7); // Initialise with LCD 
 
 //Custom datastructure to hold information about a song
 struct Timecode {
-  int seconds;
-  int minutes;
-  int hours;
+  int seconds = 0;
+  int minutes = 0;
+  int hours = 0;
 };
 struct Song {
-  String title;
-  String author;
+  String title = "Unknown";
+  String author = "Unknown";
   Timecode duration;
   Timecode length;
 };
