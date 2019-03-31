@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace CMD_Music_Player
 {

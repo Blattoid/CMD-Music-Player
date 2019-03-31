@@ -4,8 +4,8 @@ using System.Threading;
 
 /* This is designed for a 20x4 character LCD screen. Here is the layout with border to denote screen edges:
     +--------------------+
-    | [SCROLLING TITLE]  |
-    |--------------------|
+    |[SONG TITLE]        |
+    |[SONG ARTIST]       |
     |      6:9/4:20      |
     |[======>           ]|
     +--------------------+
@@ -32,7 +32,7 @@ namespace CMD_Music_Player
 
             //setup serial port
             serial.PortName = "COM" + SerialPort; //e.g. COM4
-            serial.BaudRate = 9600; //ensure correct baud rate
+            serial.BaudRate = 115200; //ensure correct baud rate
             //disable hardware handshaking
             serial.RtsEnable = false;
             serial.DtrEnable = false;
