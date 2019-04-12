@@ -25,6 +25,9 @@ namespace CMD_Music_Player
         {
             Console.ForegroundColor = ConsoleColor.White;
 
+            //add play state change event handler
+            player.PlayStateChange += player_PlayStateChange;
+
             //attempt to read the list of registered folders from the stored configuration.
             try { int x = Properties.Settings.Default.RegisteredFolders.Count; }
             catch { Properties.Settings.Default.RegisteredFolders = new StringCollection(); } //error handling if the list is empty
@@ -32,7 +35,7 @@ namespace CMD_Music_Player
             discoveredfiles = fileSearch.PerformScan(); //perform inital scan for media
             if (Properties.Settings.Default.ArduinoEnable)
             {
-                screen.SerialPort = Properties.Settings.Default.ArduinoPort;
+                screen.SerialPort = 4; //Properties.Settings.Default.ArduinoPort;
                 screen.Activate();
             }
             for (; ; )
@@ -123,8 +126,6 @@ namespace CMD_Music_Player
                 {
                     if (functions.IsMediaSelected()) Console.WriteLine(functions.CreateBarFromMediaInfo());
                     else functions.Error("No media is loaded.");
-
-
                 }
                 else if (commandupper == "INFO" || commandupper == "I")
                 {
@@ -156,19 +157,15 @@ namespace CMD_Music_Player
                     }
 
                     string[] strtimeargs = command[1].Split(Char.Parse(":"));
-                    if (strtimeargs.Length < 1 || strtimeargs.Length > 3) functions.Error(syntax);
-                    List<double> timeargs = new List<double>();
-
-                    try
+                    if (strtimeargs.Length < 1 || strtimeargs.Length > 3)
                     {
-                        for (int i = strtimeargs.Length; i-- > 0;) //reverse it so it is now in the ss:mm:hh format. This makes it easier to process.
-                        {
-                            string item = strtimeargs[i];
-                            if (item == "") { functions.Error(syntax); continue; }
-                            timeargs.Add(Convert.ToDouble(item)); //double is bulletproof since it is a 64 bit number, so it will overflow after 5.38 millenia.
-                        }
+                        functions.Error(syntax);
+                        continue;
                     }
-                    catch (Exception err) { functions.Error("Invalid time code: " + err.Message); continue; }
+
+                    List<double> timeargs = new List<double>();
+                    timeargs = functions.ConvertTimeargsToInt(strtimeargs);
+
                     //parse into seconds
                     float seconds = 0;
                     int multiplier = 1; //multiply the item by this
@@ -300,27 +297,30 @@ namespace CMD_Music_Player
             }
         }
 
-        /*static void player_PlayStateChange(int newstate)
+        static void player_PlayStateChange(int newstate)
         {
-            switch (newstate)
-            {
-                case 0: Console.WriteLine("Undefined"); break;
-                case 1: Console.WriteLine("Stopped"); break;
-                case 2: Console.WriteLine("Paused"); break;
-                case 3: Console.WriteLine("Playing"); break;
-                case 4: Console.WriteLine("ScanForward"); break;
-                case 5: Console.WriteLine("ScanReverse"); break;
-                case 6: Console.WriteLine("Buffering"); break;
-                case 7: Console.WriteLine("Waiting"); break;
-                case 8: Console.WriteLine("MediaEnded"); break;
-                case 9: Console.WriteLine("Transitioning"); break;
-                case 10: Console.WriteLine("Ready"); break;
-                case 11: Console.WriteLine("Reconnecting"); break;
-                case 12: Console.WriteLine("Last"); break;
-                default: functions.Error(newstate.ToString()); break;
-            }
-        }*/
-        
+            if (Core.player.currentMedia == null) return; //do NOT proceed if no media is selected
+
+            /*  List of state codes and their meanings:
+             *  0: Undefined
+             *  1: Stopped
+             *  2: Paused
+             *  3: Playing
+             *  4: ScanForward
+             *  5: ScanReverse
+             *  6: Buffering
+             *  7: Waiting
+             *  8: MediaEnded
+             *  9: Transitioning
+             *  10: Ready
+             *  11: Reconnecting
+             *  12: Last
+             */
+
+            //If we need to, inform the Arduino Interface to update track information.
+            if (screen.Enabled) screen.UpdateTrackData();
+        }
+
         //https://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp
         [DllImport("shell32.dll", SetLastError = true)]
         static extern IntPtr CommandLineToArgvW(
