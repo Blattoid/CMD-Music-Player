@@ -205,31 +205,39 @@ namespace CMD_Music_Player
                         if (commandupper == "HELP" || commandupper == "H")
                         {
                             foreach (string line in new string[] { "List of commands:" ,
-                                             "\tlist / ls",
-                                             "\tadd / a",
-                                             "\tdel / d",
+                                             "\tlist / l / ls",
+                                             "\tadd \"[folderpath]\" / a \"[folderpath]\"",
+                                             "\tdel [folderid] / d [folderid]",
+                                             "\treg_app_dir / x",
                                              "",
                                              "\thelp / h",
-                                             "\texit / e",
-                                             "Changes are saved upon executing the \"exit\" command."})
+                                             "\texit / e / q",
+                                             "**Changes are saved upon executing the \"exit\" command**"})
                             { Console.WriteLine(line); }
                         }
-                        else if (commandupper == "LIST" || commandupper == "LS")
+                        else if (commandupper == "LIST" || commandupper == "L" || commandupper == "LS")
                         {
                             Console.WriteLine("List of registered folders:");
-                            int folderid = 0;
-                            foreach (string path in Properties.Settings.Default.RegisteredFolders)
-                            {
-                                Console.WriteLine("[" + folderid + "] " + path);
-                                folderid++;
-                            }
+                            ListRegisteredFolders();
                             if (Properties.Settings.Default.RegisterAppFolder) Console.WriteLine("* " + AppDomain.CurrentDomain.BaseDirectory);
                         }
                         else if (commandupper == "ADD" || commandupper == "A")
                         {
-                            //query for folderpath to add
-                            Console.Write("Enter the full filepath to the folder below.\nMake sure to include the drive letter.\n?");
-                            string folderpath = Console.ReadLine();
+                            string folderpath = "";
+                            //check if a folder parameter was specified
+                            if (command.Length > 1)
+                            {
+                                //there is - attempt to add it.
+                                folderpath = command[1];
+                                Console.WriteLine("Adding '" + folderpath + "'");
+                            }
+                            else
+                            {
+                                //no parameter was specified; query for folderpath to add
+                                Console.Write("Enter the full filepath to the folder below.\nMake sure to include the drive letter.\n?");
+                                folderpath = Console.ReadLine();
+                            }
+
                             if (!(Directory.Exists(folderpath)))
                             {
                                 functions.Error("Folder doesn't exist.");
@@ -242,25 +250,19 @@ namespace CMD_Music_Player
                                 else
                                 {
                                     Properties.Settings.Default.RegisteredFolders.Add(folderpath);
-                                    functions.Success("Successfully added folder!");
+                                    functions.Success("Successfully registered folder!");
                                 }
                             }
                             catch { functions.Error("Internal error."); }
                         }
                         else if (commandupper == "DEL" || commandupper == "D")
                         {
-                            string userinput;
+                            string userinput = "";
                             int folderid;
-                            int i = 0;
                             //has the user already specified the folder id as an argument? if not, ask them for the id.
-                            if (!int.TryParse(command[1], out int n))
+                            if (command.Length == 1)
                             {
-                                Console.WriteLine("List of registered folders:");
-                                foreach (string path in Properties.Settings.Default.RegisteredFolders)
-                                {
-                                    Console.WriteLine("[" + i + "] " + path);
-                                    i++;
-                                }
+                                ListRegisteredFolders();
                                 Console.Write("Enter folder id to de-register: ");
                                 userinput = Console.ReadLine();
                             }
@@ -276,7 +278,16 @@ namespace CMD_Music_Player
                             Properties.Settings.Default.RegisteredFolders.RemoveAt(folderid);
                             functions.Success("De-registered folder #" + folderid);
                         }
-                        else if (commandupper == "EXIT" || commandupper == "E") break;
+                        else if (commandupper == "REG_APP_DIR" || commandupper == "X")
+                        {
+                            Console.Write("Use of the app directory for music is now ");
+                            bool enabled = !Properties.Settings.Default.RegisterAppFolder;
+                            Properties.Settings.Default.RegisterAppFolder = enabled;
+                            if (enabled) functions.Success("enabled.");
+                            else functions.Error("disabled.");
+                        }
+
+                        else if (commandupper == "EXIT" || commandupper == "E" || commandupper == "Q") break;
                         else { functions.Error("Command unknown. Type 'help' for a list of commands."); }
                     }
                     functions.SaveConfiguration();
@@ -292,7 +303,7 @@ namespace CMD_Music_Player
                     if (bypassfilecheck) functions.Warning("Warning: Filechecks have been disabled. This can result in unexpected behavior."); //obligatory warning message
                     else functions.Success("Filechecks enabled.");
                 }
-                else if (commandupper == "QUIT" || commandupper == "Q") { Environment.Exit(0); }
+                else if (commandupper == "QUIT" || commandupper == "Q" || commandupper == "E") { Environment.Exit(0); }
                 else { functions.Error("Command unknown. Type 'help' for a list of commands."); }
             }
         }
@@ -319,6 +330,15 @@ namespace CMD_Music_Player
 
             //If we need to, inform the Arduino Interface to update track information.
             if (screen.Enabled) screen.UpdateTrackData();
+        }
+        private static void ListRegisteredFolders()
+        {
+            int folderid = 0;
+            foreach (string path in Properties.Settings.Default.RegisteredFolders)
+            {
+                Console.WriteLine("[" + folderid + "] " + path);
+                folderid++;
+            }
         }
 
         //https://stackoverflow.com/questions/298830/split-string-containing-command-line-parameters-into-string-in-c-sharp

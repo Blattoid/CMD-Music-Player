@@ -92,7 +92,18 @@ namespace CMD_Music_Player
                 {
                     //check if the folder path is still valid before adding it.
                     if (Directory.Exists(path)) registeredfolders.Add(path);
-                    else functions.Warning("'" + path + "' no longer exists. Ignoring...");
+                    else
+                    {
+                        //if not, find the folder ID then inform the user that the folder no longer exists
+                        int folderid = 0;
+                        foreach (string searchpath in Properties.Settings.Default.RegisteredFolders)
+                        {
+                            //if we found it, exit the loop
+                            if (searchpath == path) break;
+                            folderid++;
+                        }
+                        functions.Warning("["+folderid+"] '" + path + "' no longer exists. Ignoring...");
+                    }
                 }
             }
 
