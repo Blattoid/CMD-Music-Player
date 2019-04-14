@@ -91,7 +91,6 @@ namespace CMD_Music_Player
 
         private void ScreenTick()
         {
-            Thread.Sleep(2000); //DEBUG LINE - REMOVE AFTERWARDS
             for (; ; )
             {
                 if (Enabled)
