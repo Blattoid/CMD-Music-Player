@@ -25,9 +25,9 @@ namespace CMD_Music_Player
 {
     class ArduinoCharScreenInterface
     {
-        private static HelperFunctions functions = new HelperFunctions();
+        private static readonly HelperFunctions functions = new HelperFunctions();
 
-        private SerialPort serial = new SerialPort();
+        private readonly SerialPort serial = new SerialPort();
         private Thread ScreenTicker = null;
         public int SerialPort = 0; //ID of COM port that Arduino uses
         public bool Enabled = false; //allows the thread to be turned on and off without actually closing it
@@ -106,7 +106,7 @@ namespace CMD_Music_Player
         }
         private void send(string[] input, string command)
         {
-            List<double> timeargs = new List<double>();
+            List<double> timeargs;
             timeargs = functions.ConvertTimeargsToInt(input);
 
             //pad any missing arguments with 0's

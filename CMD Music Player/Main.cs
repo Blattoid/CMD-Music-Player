@@ -12,16 +12,16 @@ namespace CMD_Music_Player
     {
         public static WMPLib.WindowsMediaPlayer player = new WMPLib.WindowsMediaPlayer(); //the heart of this program
         //https://docs.microsoft.com/en-us/dotnet/api/system.globalization.textinfo.totitlecase?redirectedfrom=MSDN&view=netframework-4.7.2#System_Globalization_TextInfo_ToTitleCase_System_String_
-        static TextInfo TextCaseConverter = new CultureInfo("en-GB", false).TextInfo;
+        static readonly TextInfo TextCaseConverter = new CultureInfo("en-GB", false).TextInfo;
 
         public static bool bypassfilecheck = false;
         static bool LoopEnabled = false;
         static StringCollection discoveredfiles = new StringCollection();
-        private static FileSearch fileSearch = new FileSearch();
-        private static HelperFunctions functions = new HelperFunctions();
-        private static ArduinoCharScreenInterface screen = new ArduinoCharScreenInterface();
+        private readonly static FileSearch fileSearch = new FileSearch();
+        private readonly static HelperFunctions functions = new HelperFunctions();
+        private readonly static ArduinoCharScreenInterface screen = new ArduinoCharScreenInterface();
 
-        static void Main(string[] args)
+        static void Main()
         {
             Console.ForegroundColor = ConsoleColor.White;
 
@@ -35,7 +35,7 @@ namespace CMD_Music_Player
             discoveredfiles = fileSearch.PerformScan(); //perform inital scan for media
             if (Properties.Settings.Default.ArduinoEnable)
             {
-                screen.SerialPort = 4; //Properties.Settings.Default.ArduinoPort;
+                screen.SerialPort = Properties.Settings.Default.ArduinoPort;
                 screen.Activate();
             }
             for (; ; )
@@ -45,7 +45,7 @@ namespace CMD_Music_Player
                 if (command.Length == 0) continue;
                 string commandupper = command[0].ToUpper();
 
-                if (commandupper == "HELP")
+                if (commandupper == "HELP" || commandupper == "H")
                 {
                     foreach (string line in new string[] { "List of commands:" ,
                                              "\tplay / pl",
@@ -58,6 +58,7 @@ namespace CMD_Music_Player
                                              "",
                                              "\tlist / ls",
                                              "\tmanage_folders / mf",
+                                             "\tsettings / se",
                                              "\thelp / h",
                                              "\tquit / q"})
                     { Console.WriteLine(line); }
