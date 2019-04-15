@@ -13,12 +13,13 @@ namespace CMD_Music_Player
         {
             List<string> found_files = new List<string> { }; //list to store discovered files.
 
-            //check if we have permission to access the folder
-            try { Directory.GetFiles(searchfolder); }
-            catch { return new List<string> { }; }
+            //check if we have permission to access the folder while simultaneously reading what files are in the directory.
+            string[] directory_listing = null;
+            try { directory_listing = Directory.GetFiles(searchfolder); }
+            catch { return new List<string> { }; } //if not, return an empty list.
 
             //add all the files in the folder that are music files.
-            foreach (string filepath in Directory.GetFiles(searchfolder))
+            foreach (string filepath in directory_listing)
             {
                 if (IsSupportedFiletype(filepath))
                 {

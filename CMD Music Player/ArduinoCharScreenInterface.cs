@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
 using System.Threading;
@@ -25,15 +26,15 @@ namespace CMD_Music_Player
 {
     class ArduinoCharScreenInterface
     {
-        private static readonly HelperFunctions functions = new HelperFunctions();
+        private readonly HelperFunctions functions = new HelperFunctions(messageprefix:"Arduino Interface");
 
-        private readonly SerialPort serial = new SerialPort();
+        public readonly SerialPort serial = new SerialPort();
         private Thread ScreenTicker = null;
-        public int SerialPort = 0; //ID of COM port that Arduino uses
         public bool Enabled = false; //allows the thread to be turned on and off without actually closing it
 
         public void Activate()
         {
+            functions.Success("Initialising...");
             //check if the screen is already activated.
             if (serial.IsOpen)
             {
@@ -42,7 +43,7 @@ namespace CMD_Music_Player
             }
 
             //setup serial port
-            serial.PortName = "COM" + SerialPort; //e.g. COM4
+            serial.PortName = "COM" + Properties.Settings.Default.ArduinoPort; //e.g. COM4
             serial.BaudRate = 115200; //ensure correct baud rate
             //disable hardware handshaking
             serial.RtsEnable = false;
@@ -51,13 +52,36 @@ namespace CMD_Music_Player
             try { serial.Open(); /*start communication*/}
             catch (IOException)
             {
-                functions.Error("Serial port " + serial.PortName + " does not exist.\nAborting initialisation of Arduino interface.");
+                functions.Error("Serial port " + serial.PortName + " does not exist.");
+                functions.Error("Aborting initialisation of Arduino interface.");
                 return;
             }
-            writeline("ver"); //retrieve the software version to check the Arduino is running what we expect
-            if (!serial.ReadLine().Contains("Music Readout"))
+            
+            bool is_ok = false;
+            string response = "";
+            const int maxattempts = 3;
+            for (int i = 1; i <= 3; i++) //3 attempts to connect to arduino
             {
-                functions.Error("Arduino is not running the expected sketch!\nPlease flash the Arduino with the provided sketch then retry.\nAborting Arduino interface.");
+                writeline("ver"); //retrieve the software version to check the Arduino is running what we expect
+                response = serial.ReadLine(); //read response from serial
+                response = response.Trim(new char[] { char.Parse("\r"), char.Parse("\n") }); //remove leading and trailing newlines
+
+                if (response.Contains("Music Readout")) // the sketch we expect to be running will return a string containing this.
+                {
+                    is_ok = true;
+                    break;
+                }
+                else functions.Warning("Attempt " + i + "/" + maxattempts + " failed.");
+                Thread.Sleep(500); //some delay between attempts
+            }
+            if (is_ok) functions.Success("Connected!");
+            else
+            {
+                serial.Close();
+                functions.Error("Unable to confirm correct sketch on Arduino.");
+                functions.Error("Please flash the Arduino with the provided sketch then retry.");
+                functions.Error("Got '"+response+"', which was unexpected.");
+                functions.Error("Aborting Arduino interface.");
                 return;
             }
 
@@ -121,9 +145,9 @@ namespace CMD_Music_Player
         private void writeline(string data)
         {
             try { serial.WriteLine(data); }
-            catch (IOException)
+            catch (Exception)
             {
-                functions.Error("Unable to write data to serial.");
+                functions.Error("[Arduino Interface] Unable to write data to serial.");
                 Enabled = false;
             }
         }

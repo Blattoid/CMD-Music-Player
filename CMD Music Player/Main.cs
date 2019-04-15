@@ -23,8 +23,6 @@ namespace CMD_Music_Player
 
         static void Main()
         {
-            Console.ForegroundColor = ConsoleColor.White;
-
             //add play state change event handler
             player.PlayStateChange += player_PlayStateChange;
 
@@ -33,11 +31,7 @@ namespace CMD_Music_Player
             catch { Properties.Settings.Default.RegisteredFolders = new StringCollection(); } //error handling if the list is empty
 
             discoveredfiles = fileSearch.PerformScan(); //perform inital scan for media
-            if (Properties.Settings.Default.ArduinoEnable)
-            {
-                screen.SerialPort = Properties.Settings.Default.ArduinoPort;
-                screen.Activate();
-            }
+            if (Properties.Settings.Default.ArduinoAutostart)  screen.Activate(); //autostart the screen if we need to
             for (; ; )
             {
                 Console.Write(">");
@@ -294,6 +288,85 @@ namespace CMD_Music_Player
                     functions.SaveConfiguration();
                     Console.WriteLine("Rescanning for media...");
                     discoveredfiles = fileSearch.PerformScan(); //perform another scan for media
+                }
+                else if (commandupper == "SETTINGS" || commandupper == "SE")
+                {
+                    Console.WriteLine("Entering settings menu...\nType help for list of commands.");
+                    for (; ; )
+                    {
+                        Console.Write(":");
+                        command = CommandLineToArgs(Console.ReadLine());
+                        if (command.Length == 0) continue;
+                        commandupper = command[0].ToUpper();
+
+                        if (commandupper == "HELP" || commandupper == "H")
+                        {
+                            foreach (string line in new string[] { "List of commands:" ,
+                                             "\tset_serial_port / com",
+                                             "\ttoggle_arduino / ta",
+                                             "\tautostart_arduino / as",
+                                             "\tset_back_colour / bc",
+                                             "\tset_text_colour / tc",
+                                             "",
+                                             "\thelp / h",
+                                             "\texit / e / q",
+                                             "**Changes are saved upon executing the \"exit\" command**"})
+                            { Console.WriteLine(line); }
+                        }
+                        else if (commandupper == "SET_SERIAL_PORT" || commandupper == "COM")
+                        {
+                            //for every com port, add it to the list of options.
+                            Console.WriteLine("List of COM ports:");
+                            List<int> comPorts = new List<int>();
+                            foreach (string item in System.IO.Ports.SerialPort.GetPortNames())
+                            {
+                                comPorts.Add(Convert.ToInt16(item.Substring(3)));
+                            }
+                            comPorts.Sort();
+                            foreach (int portid in comPorts)
+                            {
+                                Console.WriteLine("\tCOM" + portid);
+                            }
+
+                            Console.Write("Please select a COM port from the provided list: ");
+                            try { Properties.Settings.Default.ArduinoPort = Convert.ToInt16(Console.ReadLine().Replace("COM","")); }
+                            catch (Exception err)
+                            {
+                                functions.Error("Invalid input. " + err.Message);
+                                continue;
+                            }
+
+                            //Properties.Settings.Default.ArduinoPort = ;
+
+                        }
+                        else if (commandupper == "TOGGLE_ARDUINO" || commandupper == "TA")
+                        {
+                            if (screen.serial.IsOpen)
+                            {
+                                screen.Enabled = !screen.Enabled; //invert state
+                            }
+                            else screen.Activate(); //initial activation.
+
+                            //output change
+                            Console.Write("Arduino interface is ");
+                            if (screen.Enabled) functions.Success("enabled.");
+                            else functions.Error("disabled.");
+                        }
+                        else if (commandupper == "AUTOSTART_ARDUINO" || commandupper == "AS")
+                        {
+                            Properties.Settings.Default.ArduinoAutostart = !Properties.Settings.Default.ArduinoAutostart; //invert state
+
+                            //output change
+                            Console.Write("Autostart of Arduino interface is ");
+                            if (Properties.Settings.Default.ArduinoAutostart) functions.Success("enabled.");
+                            else functions.Error("disabled.");
+                        }
+                        else if (commandupper == "SET_BACK_COLOUR" || commandupper == "BC") { }
+                        else if (commandupper == "SET_BACK_COLOUR" || commandupper == "TC") { }
+
+                        else if (commandupper == "EXIT" || commandupper == "E" || commandupper == "Q") break;
+                        else { functions.Error("Command unknown. Type 'help' for a list of commands."); }
+                    }
                 }
                 else if (commandupper == "TOGGLE_FILECHECK" || commandupper == "TF")
                 {

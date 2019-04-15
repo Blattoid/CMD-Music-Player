@@ -5,7 +5,7 @@ namespace CMD_Music_Player
 {
     public class ProgressBar
     {
-        private static HelperFunctions functions = new HelperFunctions();
+        private readonly static HelperFunctions functions = new HelperFunctions("ProgressBar");
 
         decimal Map(decimal value, decimal fromSource, decimal toSource, decimal fromTarget, decimal toTarget)
         {

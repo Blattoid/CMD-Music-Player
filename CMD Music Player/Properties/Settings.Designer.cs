@@ -12,7 +12,7 @@ namespace CMD_Music_Player.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.9.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.0.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -49,12 +49,12 @@ namespace CMD_Music_Player.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool ArduinoEnable {
+        public bool ArduinoAutostart {
             get {
-                return ((bool)(this["ArduinoEnable"]));
+                return ((bool)(this["ArduinoAutostart"]));
             }
             set {
-                this["ArduinoEnable"] = value;
+                this["ArduinoAutostart"] = value;
             }
         }
         
